@@ -26,7 +26,9 @@ jobs:
 
       - name: Extract and build
         run: |
-          unzip -o OniCord-Auth-Forge-1.20.1.zip -d project
+          ZIP=$(find . -maxdepth 1 -iname 'OniCord-Auth*.zip' -print -quit)
+          test -n "$ZIP"
+          unzip -o "$ZIP" -d project
           BUILD_FILE=$(find project -name build.gradle -print -quit)
           test -n "$BUILD_FILE"
           cd "$(dirname "$BUILD_FILE")"
@@ -45,12 +47,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view build-${{ github.run_number }} >/dev/null 2>&1; then
-            gh release upload build-${{ github.run_number }} onicordauth.jar --clobber
-          else
-            gh release create build-${{ github.run_number }} \
-              onicordauth.jar \
-              --title "OniCord Auth Build ${{ github.run_number }}" \
-              --notes "Automatic OniCord Auth build" \
-              --latest
-          fi
+          gh release create build-${{ github.run_number }} \
+            onicordauth.jar \
+            --title "OniCord Auth Build ${{ github.run_number }}" \
+            --notes "Automatic OniCord Auth build" \
+            --latest
