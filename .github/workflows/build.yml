@@ -1,9 +1,12 @@
-name: Build OniCord Auth
+name: Build and Release OniCord Auth
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -29,8 +32,25 @@ jobs:
           cd "$(dirname "$BUILD_FILE")"
           gradle build --no-daemon
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: OniCord-Auth-JAR
-          path: project/**/build/libs/*.jar
-          if-no-files-found: error
+      - name: Prepare JAR
+        run: |
+          JAR=$(find project -path '*/build/libs/*.jar' \
+            ! -name '*-sources.jar' \
+            ! -name '*-dev.jar' \
+            ! -name '*-javadoc.jar' -print -quit)
+          test -n "$JAR"
+          cp "$JAR" onicordauth.jar
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view build-${{ github.run_number }} >/dev/null 2>&1; then
+            gh release upload build-${{ github.run_number }} onicordauth.jar --clobber
+          else
+            gh release create build-${{ github.run_number }} \
+              onicordauth.jar \
+              --title "OniCord Auth Build ${{ github.run_number }}" \
+              --notes "Automatic OniCord Auth build" \
+              --latest
+          fi
